@@ -7,26 +7,31 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Bot, Info, Loader2, Sparkles, Target } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency } from '@/lib/utils';
-import type { GenerateFinancialInsightsOutput } from '@/ai/flows/generate-financial-insights';
+import type { AnalyzeSpendingPatternsOutput } from '@/ai/flows/analyze-spending-patterns';
 
 export default function ContadoraPage() {
   const { state } = useAppContext();
-  const [insights, setInsights] = useState<GenerateFinancialInsightsOutput | null>(null);
+  const [analysis, setAnalysis] = useState<AnalyzeSpendingPatternsOutput | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const { ganhos, despesas, goals } = state;
 
-  const memoizedInput = useMemo(() => ({
-    ganhos: ganhos.map(g => ({ ...g, data: g.data.toString() })),
-    despesas: despesas.map(d => ({ ...d, vencimento: d.vencimento.toString()})),
-    goals: goals,
-  }), [ganhos, despesas, goals]);
+  const memoizedInput = useMemo(() => {
+    const totalIncome = ganhos.reduce((sum, g) => sum + g.valor, 0);
+    const totalExpenses = despesas.reduce((sum, d) => sum + d.valor, 0);
+    // A simple heuristic to classify expenses
+    const essentialExpenses = despesas.filter(d => ['moradia', 'contas', 'saúde', 'transporte', 'alimentação'].includes(d.categoria.toLowerCase())).reduce((sum, d) => sum + d.valor, 0);
+    const discretionaryExpenses = totalExpenses - essentialExpenses;
+    const savingsGoal = goals.reduce((sum, g) => sum + g.monthlyCommitment, 0);
+    
+    return { totalIncome, totalExpenses, essentialExpenses, discretionaryExpenses, savingsGoal };
+  }, [ganhos, despesas, goals]);
 
   useEffect(() => {
-    const fetchInsights = async () => {
-      if (memoizedInput.ganhos.length === 0 && memoizedInput.despesas.length === 0) {
-        setInsights(null);
+    const fetchAnalysis = async () => {
+      if (memoizedInput.totalIncome === 0 && memoizedInput.totalExpenses === 0) {
+        setAnalysis(null);
         setIsLoading(false);
         return;
       }
@@ -36,7 +41,7 @@ export default function ContadoraPage() {
       try {
         const result = await getFinancialInsightsAction(memoizedInput);
         if (result.success) {
-          setInsights(result.data);
+          setAnalysis(result.data);
         } else {
           setError(result.error || 'Ocorreu um erro desconhecido.');
         }
@@ -48,7 +53,7 @@ export default function ContadoraPage() {
       }
     };
 
-    fetchInsights();
+    fetchAnalysis();
   }, [memoizedInput]);
 
   const totalGoalCommitment = state.goals.reduce((sum, goal) => sum + goal.monthlyCommitment, 0);
@@ -68,13 +73,13 @@ export default function ContadoraPage() {
       return (
         <Alert variant="destructive">
           <Info className="h-4 w-4" />
-          <AlertTitle>Erro ao Gerar Insights</AlertTitle>
+          <AlertTitle>Erro ao Gerar Análise</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       );
     }
 
-    if (!insights || insights.insights.length === 0) {
+    if (!analysis) {
       return (
         <Alert>
           <Info className="h-4 w-4" />
@@ -88,18 +93,35 @@ export default function ContadoraPage() {
     
     return (
       <div className="space-y-4">
-        {insights.insights.map((insight, index) => (
-          <Card key={index} className="bg-blue-50 border-blue-200">
+        <Card className="bg-blue-50 border-blue-200">
             <CardHeader className='pb-2'>
               <CardTitle className="text-base text-blue-800 flex items-center gap-2">
-                <Sparkles className="h-4 w-4" /> Insight da IA
+                <Sparkles className="h-4 w-4" /> Conselho da IA
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p>{insight}</p>
+              <p>{analysis.spendingAdvice}</p>
             </CardContent>
           </Card>
-        ))}
+
+        <div className="grid grid-cols-2 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Limite Diário</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">{formatCurrency(analysis.dailySpendingLimit)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Limite Semanal</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">{formatCurrency(analysis.weeklySpendingLimit)}</p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   };
@@ -118,7 +140,7 @@ export default function ContadoraPage() {
         <Info className="h-4 w-4" />
         <AlertTitle>Como Funciona?</AlertTitle>
         <AlertDescription>
-          Os cálculos abaixo são gerados por nossa IA com base nos seus lançamentos na aba 'Contas' e são atualizados em tempo real.
+          Os cálculos abaixo são gerados por nossa IA com base nos seus lançamentos e metas, sendo atualizados em tempo real.
         </AlertDescription>
       </Alert>
       

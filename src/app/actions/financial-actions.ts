@@ -1,9 +1,9 @@
 'use server';
-import { generateFinancialInsights, type GenerateFinancialInsightsInput } from '@/ai/flows/generate-financial-insights';
+import { analyzeSpendingPatterns, type AnalyzeSpendingPatternsInput } from '@/ai/flows/analyze-spending-patterns';
 
-export async function getFinancialInsightsAction(input: GenerateFinancialInsightsInput) {
+export async function getFinancialInsightsAction(input: AnalyzeSpendingPatternsInput) {
   try {
-    const result = await generateFinancialInsights(input);
+    const result = await analyzeSpendingPatterns(input);
     return { success: true, data: result };
   } catch (error) {
     console.error("Erro ao gerar insights financeiros:", error);

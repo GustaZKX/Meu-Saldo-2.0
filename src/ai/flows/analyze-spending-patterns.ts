@@ -14,30 +14,9 @@ import {z} from 'genkit';
 const AnalyzeSpendingPatternsInputSchema = z.object({
   totalIncome: z.number().describe('The total monthly income of the user.'),
   totalExpenses: z.number().describe('The total monthly expenses of the user.'),
-  essentialExpensesPercentage: z
-    .number()
-    .describe(
-      'The percentage of total expenses that are considered essential (e.g., rent, utilities, groceries).' + 
-      'Must be a value between 0 and 100.'
-    ),
-  discretionaryExpensesPercentage: z
-    .number()
-    .describe(
-      'The percentage of total expenses that are considered discretionary (e.g., entertainment, dining out, hobbies).' + 
-      'Must be a value between 0 and 100.'
-    ),
-  debtsPercentage: z
-    .number()
-    .describe(
-      'The percentage of total income dedicated to debt payments (e.g., credit cards, loans).' + 
-      'Must be a value between 0 and 100.'
-    ),
-  savingsGoalPercentage: z
-    .number()
-    .describe(
-      'The percentage of total income the user wants to save each month.' + 
-      'Must be a value between 0 and 100.'
-    ),
+  essentialExpenses: z.number().describe('The total amount of essential expenses (e.g., rent, utilities, groceries).'),
+  discretionaryExpenses: z.number().describe('The total amount of discretionary expenses (e.g., entertainment, dining out, hobbies).'),
+  savingsGoal: z.number().describe('The amount the user wants to save each month.'),
 });
 export type AnalyzeSpendingPatternsInput = z.infer<typeof AnalyzeSpendingPatternsInputSchema>;
 
@@ -64,21 +43,16 @@ const prompt = ai.definePrompt({
   name: 'analyzeSpendingPatternsPrompt',
   input: {schema: AnalyzeSpendingPatternsInputSchema},
   output: {schema: AnalyzeSpendingPatternsOutputSchema},
-  prompt: `You are a personal finance advisor. Analyze the user's spending patterns and provide personalized spending limit suggestions based on the data provided. Consider the percentages provided to generate accurate and helpful advice.
+  prompt: `You are a personal finance advisor. Your goal is to provide actionable advice to users based on their financial data. Analyze the user's spending patterns and provide personalized spending limit suggestions.
 
 User's Financial Data:
-Total Income: {{{totalIncome}}}
-Total Expenses: {{{totalExpenses}}}
-Essential Expenses Percentage: {{{essentialExpensesPercentage}}}%
-Discretionary Expenses Percentage: {{{discretionaryExpensesPercentage}}}%
-Debts Percentage: {{{debtsPercentage}}}%
-Savings Goal Percentage: {{{savingsGoalPercentage}}}%
+- Total Income: {{{totalIncome}}}
+- Total Expenses: {{{totalExpenses}}}
+- Essential Expenses: {{{essentialExpenses}}}
+- Discretionary Expenses: {{{discretionaryExpenses}}}
+- Savings Goal: {{{savingsGoal}}}
 
-Based on this information, suggest a daily and weekly spending limit, and provide personalized advice. Take into account the user's desire to optimize their spending.
-
-Daily Spending Limit:
-Weekly Spending Limit:
-Spending Advice: `,
+Based on this information, calculate and suggest a daily and a weekly spending limit. Provide personalized advice on how the user can better manage their finances to meet their savings goals. The advice should be encouraging and practical. Your output must be in Portuguese.`,
 });
 
 const analyzeSpendingPatternsFlow = ai.defineFlow(
