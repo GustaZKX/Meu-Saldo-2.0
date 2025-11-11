@@ -1,3 +1,140 @@
+'use client';
+import { useState } from 'react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Calendar } from '@/components/ui/calendar';
+import { useAppContext } from '@/contexts/app-context';
+import { formatCurrency, isSameDay, isSameMonth } from '@/lib/utils';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Wallet } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
 export default function Home() {
-  return <></>;
+  const { state, toggleExpensePaid } = useAppContext();
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+
+  const handleMonthChange = (offset: number) => {
+    setCurrentMonth(prev => {
+      const newDate = new Date(prev);
+      newDate.setMonth(prev.getMonth() + offset);
+      return newDate;
+    });
+    setSelectedDate(undefined);
+  };
+
+  // Financial Summary Calculation
+  const ganhosMes = state.ganhos.filter(g => isSameMonth(new Date(g.data), currentMonth));
+  const despesasMes = state.despesas.filter(d => isSameMonth(new Date(d.vencimento), currentMonth));
+  
+  const totalReceitas = ganhosMes.reduce((sum, g) => sum + g.valor, 0);
+  const totalDespesas = despesasMes.reduce((sum, d) => sum + d.valor, 0);
+  const totalPagos = despesasMes.filter(d => d.pago).reduce((sum, d) => sum + d.valor, 0);
+  const saldoAtual = totalReceitas - totalPagos;
+
+  // Calendar
+  const datesWithDues = state.despesas
+    .filter(d => !d.pago)
+    .map(d => new Date(d.vencimento));
+
+  const vencimentosDoDia = selectedDate ? state.despesas.filter(d => isSameDay(new Date(d.vencimento), selectedDate)) : [];
+  const vencimentosDoMes = state.despesas.filter(d => isSameMonth(new Date(d.vencimento), currentMonth) && !d.pago).sort((a,b) => new Date(a.vencimento).getTime() - new Date(b.vencimento).getTime());
+
+  const displayedVencimentos = selectedDate ? vencimentosDoDia : vencimentosDoMes.slice(0, 5);
+  
+  return (
+    <div className="p-4 space-y-6">
+      <h2 className="text-xl font-bold text-primary">Finanças do Mês</h2>
+      <div className="grid grid-cols-1 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <CalendarIcon className="h-5 w-5" /> Vencimentos e Alertas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={setSelectedDate}
+              month={currentMonth}
+              onMonthChange={setCurrentMonth}
+              components={{
+                IconLeft: () => <ChevronLeft className="h-4 w-4" />,
+                IconRight: () => <ChevronRight className="h-4 w-4" />,
+              }}
+              modifiers={{
+                hasDue: datesWithDues,
+              }}
+              modifiersClassNames={{
+                hasDue: 'has-due',
+              }}
+              className="p-0"
+            />
+            <div className="mt-4 border-t pt-4">
+              <h4 className="font-semibold mb-2">{selectedDate ? `Contas do dia ${selectedDate.toLocaleDateString('pt-BR')}` : 'Próximos Vencimentos'}</h4>
+              {displayedVencimentos.length > 0 ? (
+                <div className="space-y-2">
+                  {displayedVencimentos.map(d => {
+                    const isVencido = !d.pago && new Date(d.vencimento) < new Date() && !isSameDay(new Date(d.vencimento), new Date());
+                    return (
+                      <div key={d.id} className={`text-sm p-2 rounded-md border-l-4 ${d.pago ? 'border-blue-400 bg-blue-50 opacity-70' : isVencido ? 'border-destructive bg-destructive/10' : 'border-amber-400 bg-amber-50'}`}>
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className={`font-medium ${isVencido ? 'text-destructive' : ''}`}>{d.nome} - {formatCurrency(d.valor)}</p>
+                            <p className="text-xs text-muted-foreground">Vence: {new Date(d.vencimento).toLocaleDateString('pt-BR')}</p>
+                          </div>
+                          <Button size="sm" variant={d.pago ? "outline" : "default"} onClick={() => toggleExpensePaid(d.id, d.pago)}>
+                            {d.pago ? 'Desmarcar' : 'Pagar'}
+                          </Button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-center text-muted-foreground bg-muted p-3 rounded-md">
+                  {selectedDate ? 'Nenhuma conta para este dia.' : 'Nenhum vencimento neste mês.'}
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Wallet className="h-5 w-5" /> Controle Mensal
+            </CardTitle>
+            <CardDescription>Status atual das suas finanças</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 text-sm">
+            {(totalReceitas === 0 && totalDespesas === 0) && (
+              <p className="text-center text-muted-foreground bg-muted p-3 rounded-md">Cadastre ganhos e despesas para ver o resumo.</p>
+            )}
+            <div className="flex justify-between items-center">
+              <span className="font-medium">Entrou (Receitas Totais)</span>
+              <span className="font-bold text-green-600 value receita">{formatCurrency(totalReceitas)}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="font-medium">Saiu (Despesas Totais)</span>
+              <span className="font-bold text-destructive value despesa">{formatCurrency(totalDespesas)}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="font-medium">Pago (Despesas Liquidadas)</span>
+              <span className="font-bold text-cyan-600 value pago">{formatCurrency(totalPagos)}</span>
+            </div>
+            <div className="flex justify-between items-center pt-4 border-t">
+              <span className="font-semibold text-base">Saldo Atual (Disponível)</span>
+              <span className={`font-bold text-lg ${saldoAtual < 0 ? 'text-destructive' : 'text-primary'} value saldo`}>{formatCurrency(saldoAtual)}</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
 }
