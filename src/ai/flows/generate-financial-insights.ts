@@ -60,16 +60,18 @@ export async function generateFinancialInsights(
   return generateFinancialInsightsFlow(input);
 }
 
-const analyzeFinancialData = ai.defineTool({
-  name: 'analyzeFinancialData',
-  description: 'Analisa dados financeiros do usuário para fornecer insights sobre limites de gastos e progresso de metas.',
-  inputSchema: GenerateFinancialInsightsInputSchema,
-  outputSchema: z.object({
-    dailySpendingLimit: z.number().describe('Limite de gastos diários.'),
-    weeklySpendingLimit: z.number().describe('Limite de gastos semanal.'),
-    goalProgressSummary: z.string().describe('Sumário do progresso das metas.'),
-  }),
-  async (input) => {
+const analyzeFinancialData = ai.defineTool(
+  {
+    name: 'analyzeFinancialData',
+    description: 'Analisa dados financeiros do usuário para fornecer insights sobre limites de gastos e progresso de metas.',
+    inputSchema: GenerateFinancialInsightsInputSchema,
+    outputSchema: z.object({
+      dailySpendingLimit: z.number().describe('Limite de gastos diários.'),
+      weeklySpendingLimit: z.number().describe('Limite de gastos semanal.'),
+      goalProgressSummary: z.string().describe('Sumário do progresso das metas.'),
+    }),
+  },
+  async function (input) {
     const totalReceitas = input.ganhos.reduce((sum, g) => sum + g.valor, 0);
     const totalPagos = input.despesas
       .filter(d => d.pago)
@@ -106,12 +108,12 @@ const analyzeFinancialData = ai.defineTool({
       weeklySpendingLimit,
       goalProgressSummary,
     };
-  },
-});
+  }
+);
 
 const insightsPrompt = ai.definePrompt({
   name: 'insightsPrompt',
-  input: GenerateFinancialInsightsInputSchema,
+  input: {schema: GenerateFinancialInsightsInputSchema},
   output: {
     schema: GenerateFinancialInsightsOutputSchema,
   },
