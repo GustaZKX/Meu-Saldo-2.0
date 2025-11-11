@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useAppContext } from '@/contexts/app-context';
 import { Ganho, Despesa } from '@/lib/types';
 import { formatCurrency, isSameMonth } from '@/lib/utils';
-import { Pencil, PlusCircle, Trash2, TrendingDown, TrendingUp, X } from 'lucide-react';
+import { Pencil, PlusCircle, Trash2, TrendingDown, TrendingUp, X, Wallet } from 'lucide-react';
 import { format } from 'date-fns';
 
 type FormState<T> = Partial<T> | null;
