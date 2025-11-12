@@ -118,7 +118,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     if (despesa.recorrencia === 'mensal') {
       for (let i = 0; i < 12; i++) { // Adiciona para os próximos 12 meses
-        const vencimentoDate = new Date(despesa.vencimento + 'T12:00:00');
+        const vencimentoDate = new Date(despesa.vencimento.replace(/-/g, '\/'));
         const newVencimento = addMonths(vencimentoDate, i);
         newDespesas.push({
           ...despesa,

@@ -90,8 +90,8 @@ export default function ContasPage() {
     form.reset();
   };
 
-  const ganhosDoMes = state.ganhos.filter(g => isSameMonth(new Date(g.data), currentMonth));
-  const despesasDoMes = state.despesas.filter(d => isSameMonth(new Date(d.vencimento), currentMonth));
+  const ganhosDoMes = state.ganhos.filter(g => isSameMonth(new Date(g.data.replace(/-/g, '\/')), currentMonth));
+  const despesasDoMes = state.despesas.filter(d => isSameMonth(new Date(d.vencimento.replace(/-/g, '\/')), currentMonth));
 
   return (
     <div className="p-4">
@@ -203,6 +203,7 @@ export default function ContasPage() {
                       <Checkbox 
                         id={`alarm-${opt.days}`} 
                         name={`alarm-${opt.days}`} 
+                        key={despesaForm?.id ? `${despesaForm.id}-alarm-${opt.days}` : `new-alarm-${opt.days}`}
                         defaultChecked={despesaForm?.alarmSettings?.includes(opt.days)}
                       />
                       <Label htmlFor={`alarm-${opt.days}`} className="font-normal">{opt.label}</Label>
@@ -212,7 +213,7 @@ export default function ContasPage() {
               </div>
 
               <div className="flex items-center space-x-2">
-                <Checkbox id="despesa-pago" name="pago" defaultChecked={despesaForm?.pago} />
+                <Checkbox id="despesa-pago" name="pago" key={despesaForm?.id ? `${despesaForm.id}-pago` : 'new-pago'} defaultChecked={despesaForm?.pago} />
                 <Label htmlFor="despesa-pago" className="font-normal">Marcar como pago</Label>
               </div>
 

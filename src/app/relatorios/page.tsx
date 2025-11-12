@@ -41,8 +41,8 @@ export default function RelatoriosPage() {
   };
   
   const { expenseData, revenueData } = useMemo(() => {
-    const filteredDespesas = state.despesas.filter(d => isSameMonth(new Date(d.vencimento), reportMonth));
-    const filteredGanhos = state.ganhos.filter(g => isSameMonth(new Date(g.data), reportMonth));
+    const filteredDespesas = state.despesas.filter(d => isSameMonth(new Date(d.vencimento.replace(/-/g, '\/')), reportMonth));
+    const filteredGanhos = state.ganhos.filter(g => isSameMonth(new Date(g.data.replace(/-/g, '\/')), reportMonth));
 
     const expenseCategoryTotals = filteredDespesas.reduce((acc, item) => {
       const cat = item.categoria || 'Não Classificado';

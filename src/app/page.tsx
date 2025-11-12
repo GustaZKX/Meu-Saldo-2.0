@@ -31,8 +31,8 @@ export default function Home() {
   };
 
   // Financial Summary Calculation
-  const ganhosMes = state.ganhos.filter(g => isSameMonth(new Date(g.data), currentMonth));
-  const despesasMes = state.despesas.filter(d => isSameMonth(new Date(d.vencimento), currentMonth));
+  const ganhosMes = state.ganhos.filter(g => isSameMonth(new Date(g.data.replace(/-/g, '\/')), currentMonth));
+  const despesasMes = state.despesas.filter(d => isSameMonth(new Date(d.vencimento.replace(/-/g, '\/')), currentMonth));
   
   const totalReceitas = ganhosMes.reduce((sum, g) => sum + g.valor, 0);
   const totalDespesas = despesasMes.reduce((sum, d) => sum + d.valor, 0);
@@ -42,27 +42,27 @@ export default function Home() {
   // Calendar
   const datesWithDues = state.despesas
     .filter(d => !d.pago)
-    .map(d => new Date(d.vencimento));
+    .map(d => new Date(d.vencimento.replace(/-/g, '\/')));
 
   // Alarms
   const today = startOfDay(new Date());
   const dueAlarms: (Despesa & { daysUntilDue: number })[] = state.despesas
     .filter(d => {
       if (d.pago || !d.alarmSettings || d.alarmSettings.length === 0) return false;
-      const dueDate = startOfDay(new Date(d.vencimento));
+      const dueDate = startOfDay(new Date(d.vencimento.replace(/-/g, '\/')));
       const daysUntilDue = differenceInDays(dueDate, today);
       if (daysUntilDue < 0) return false; // Ignore overdue
       return d.alarmSettings.includes(daysUntilDue);
     })
     .map(d => ({
       ...d,
-      daysUntilDue: differenceInDays(startOfDay(new Date(d.vencimento)), today)
+      daysUntilDue: differenceInDays(startOfDay(new Date(d.vencimento.replace(/-/g, '\/'))), today)
     }))
     .sort((a, b) => a.daysUntilDue - b.daysUntilDue);
 
 
-  const vencimentosDoDia = selectedDate ? state.despesas.filter(d => isSameDay(new Date(d.vencimento), selectedDate)) : [];
-  const vencimentosDoMes = state.despesas.filter(d => isSameMonth(new Date(d.vencimento), currentMonth) && !d.pago).sort((a,b) => new Date(a.vencimento).getTime() - new Date(b.vencimento).getTime());
+  const vencimentosDoDia = selectedDate ? state.despesas.filter(d => isSameDay(new Date(d.vencimento.replace(/-/g, '\/')), selectedDate)) : [];
+  const vencimentosDoMes = state.despesas.filter(d => isSameMonth(new Date(d.vencimento.replace(/-/g, '\/')), currentMonth) && !d.pago).sort((a,b) => new Date(a.vencimento.replace(/-/g, '\/')).getTime() - new Date(b.vencimento.replace(/-/g, '\/')).getTime());
 
   const displayedVencimentos = selectedDate ? vencimentosDoDia : vencimentosDoMes.slice(0, 5);
   
@@ -122,13 +122,13 @@ export default function Home() {
               {displayedVencimentos.length > 0 ? (
                 <div className="space-y-2">
                   {displayedVencimentos.map(d => {
-                    const isVencido = !d.pago && new Date(d.vencimento) < new Date() && !isSameDay(new Date(d.vencimento), new Date());
+                    const isVencido = !d.pago && new Date(d.vencimento.replace(/-/g, '\/')) < new Date() && !isSameDay(new Date(d.vencimento.replace(/-/g, '\/')), new Date());
                     return (
                       <div key={d.id} className={`text-sm p-2 rounded-md border-l-4 ${d.pago ? 'border-blue-400 bg-blue-50 opacity-70' : isVencido ? 'border-destructive bg-destructive/10' : 'border-amber-400 bg-amber-50'}`}>
                         <div className="flex justify-between items-center">
                           <div>
                             <p className={`font-medium ${isVencido ? 'text-destructive' : ''}`}>{d.nome} - {formatCurrency(d.valor)}</p>
-                            <p className="text-xs text-muted-foreground">Vence: {new Date(d.vencimento).toLocaleDateString('pt-BR')}</p>
+                            <p className="text-xs text-muted-foreground">Vence: {new Date(d.vencimento.replace(/-/g, '\/')).toLocaleDateString('pt-BR')}</p>
                           </div>
                           <Button size="sm" variant={d.pago ? "outline" : "default"} onClick={() => toggleExpensePaid(d.id, d.pago)}>
                             {d.pago ? 'Desmarcar' : 'Pagar'}
