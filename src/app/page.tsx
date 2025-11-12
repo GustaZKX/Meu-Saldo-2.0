@@ -61,8 +61,8 @@ export default function Home() {
     .sort((a, b) => a.daysUntilDue - b.daysUntilDue);
 
 
-  const vencimentosDoDia = selectedDate ? state.despesas.filter(d => isSameDay(new Date(d.vencimento.replace(/-/g, '\/')), selectedDate) && !d.pago) : [];
-  const vencimentosDoMes = state.despesas.filter(d => isSameMonth(new Date(d.vencimento.replace(/-/g, '\/')), currentMonth) && !d.pago).sort((a,b) => new Date(a.vencimento.replace(/-/g, '\/')).getTime() - new Date(b.vencimento.replace(/-/g, '\/')).getTime());
+  const vencimentosDoDia = selectedDate ? state.despesas.filter(d => isSameDay(new Date(d.vencimento.replace(/-/g, '\/')), selectedDate)) : [];
+  const vencimentosDoMes = state.despesas.filter(d => isSameMonth(new Date(d.vencimento.replace(/-/g, '\/')), currentMonth)).sort((a,b) => new Date(a.vencimento.replace(/-/g, '\/')).getTime() - new Date(b.vencimento.replace(/-/g, '\/')).getTime());
 
   const displayedVencimentos = selectedDate ? vencimentosDoDia : vencimentosDoMes.slice(0, 5);
   
@@ -127,7 +127,7 @@ export default function Home() {
                       <div key={d.id} className={`text-sm p-2 rounded-md border-l-4 ${d.pago ? 'border-blue-400 bg-blue-50 opacity-70' : isVencido ? 'border-destructive bg-destructive/10' : 'border-amber-400 bg-amber-50'}`}>
                         <div className="flex justify-between items-center">
                           <div>
-                            <p className={`font-medium ${isVencido ? 'text-destructive' : ''}`}>{d.nome} - {formatCurrency(d.valor)}</p>
+                            <p className={`font-medium ${isVencido ? 'text-destructive' : ''} ${d.pago ? 'line-through' : ''}`}>{d.nome} - {formatCurrency(d.valor)}</p>
                             <p className="text-xs text-muted-foreground">Vence: {new Date(d.vencimento.replace(/-/g, '\/')).toLocaleDateString('pt-BR')}</p>
                           </div>
                           {!d.pago && (
@@ -142,7 +142,7 @@ export default function Home() {
                 </div>
               ) : (
                 <p className="text-sm text-center text-muted-foreground bg-muted p-3 rounded-md">
-                  {selectedDate ? 'Nenhuma conta não paga para este dia.' : 'Nenhum vencimento pendente neste mês.'}
+                  {selectedDate ? 'Nenhuma conta para este dia.' : 'Nenhum vencimento neste mês.'}
                 </p>
               )}
             </div>
