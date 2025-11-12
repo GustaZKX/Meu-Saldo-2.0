@@ -25,7 +25,7 @@ interface AppContextType {
   addDespesa: (despesa: Omit<Despesa, 'id' | 'isRevenue'>) => void;
   editDespesa: (despesa: Omit<Despesa, 'isRevenue'>) => void;
   deleteDespesa: (id: string) => void;
-  toggleExpensePaid: (id: string, currentStatus: boolean) => void;
+  toggleExpensePaid: (id: string) => void;
   addGoal: (goal: Omit<Goal, 'id' | 'saved' | 'monthlyCommitment' | 'monthsInPlan'> & { duration: number, unit: 'days' | 'weeks' | 'months' | 'years'}) => void;
   contributeToGoal: (goalId: string, value: number) => void;
   deleteGoal: (id: string) => void;
@@ -152,13 +152,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     toast({ title: "Sucesso", description: "Despesa excluída." });
   }, [toast]);
 
-  const toggleExpensePaid = useCallback((id: string, currentStatus: boolean) => {
-    setState(prev => ({
-      ...prev,
-      despesas: prev.despesas.map(d => d.id === id ? { ...d, pago: !currentStatus } : d)
-    }));
-    toast({ title: "Sucesso", description: currentStatus ? "Pagamento desmarcado." : "Conta marcada como paga!" });
-  }, [toast]);
+  const toggleExpensePaid = useCallback((id: string) => {
+    setState(prev => {
+        let isPaid;
+        const newDespesas = prev.despesas.map(d => {
+            if (d.id === id) {
+                isPaid = !d.pago;
+                return { ...d, pago: isPaid };
+            }
+            return d;
+        });
+        toast({ title: "Sucesso", description: isPaid ? "Conta marcada como paga!" : "Pagamento desmarcado." });
+        return { ...prev, despesas: newDespesas };
+    });
+}, [toast]);
 
   const addGoal = useCallback((goalData: Omit<Goal, 'id' | 'saved' | 'monthlyCommitment' | 'monthsInPlan'> & { duration: number, unit: 'days' | 'weeks' | 'months' | 'years'}) => {
     const { duration, unit, ...rest } = goalData;

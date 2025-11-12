@@ -131,7 +131,7 @@ export default function Home() {
                             <p className="text-xs text-muted-foreground">Vence: {new Date(d.vencimento.replace(/-/g, '\/')).toLocaleDateString('pt-BR')}</p>
                           </div>
                           {!d.pago && (
-                            <Button size="sm" variant={"default"} onClick={() => toggleExpensePaid(d.id, false)}>
+                            <Button size="sm" variant={"default"} onClick={() => toggleExpensePaid(d.id)}>
                               Pagar
                             </Button>
                           )}
@@ -142,7 +142,7 @@ export default function Home() {
                 </div>
               ) : (
                 <p className="text-sm text-center text-muted-foreground bg-muted p-3 rounded-md">
-                  {selectedDate ? 'Nenhuma conta para este dia.' : 'Nenhum vencimento neste mês.'}
+                  {selectedDate ? 'Nenhuma conta não paga para este dia.' : 'Nenhum vencimento pendente neste mês.'}
                 </p>
               )}
             </div>
