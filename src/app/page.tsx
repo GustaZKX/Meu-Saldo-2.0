@@ -61,7 +61,7 @@ export default function Home() {
     .sort((a, b) => a.daysUntilDue - b.daysUntilDue);
 
 
-  const vencimentosDoDia = selectedDate ? state.despesas.filter(d => isSameDay(new Date(d.vencimento.replace(/-/g, '\/')), selectedDate)) : [];
+  const vencimentosDoDia = selectedDate ? state.despesas.filter(d => isSameDay(new Date(d.vencimento.replace(/-/g, '\/')), selectedDate) && !d.pago) : [];
   const vencimentosDoMes = state.despesas.filter(d => isSameMonth(new Date(d.vencimento.replace(/-/g, '\/')), currentMonth) && !d.pago).sort((a,b) => new Date(a.vencimento.replace(/-/g, '\/')).getTime() - new Date(b.vencimento.replace(/-/g, '\/')).getTime());
 
   const displayedVencimentos = selectedDate ? vencimentosDoDia : vencimentosDoMes.slice(0, 5);
@@ -130,9 +130,11 @@ export default function Home() {
                             <p className={`font-medium ${isVencido ? 'text-destructive' : ''}`}>{d.nome} - {formatCurrency(d.valor)}</p>
                             <p className="text-xs text-muted-foreground">Vence: {new Date(d.vencimento.replace(/-/g, '\/')).toLocaleDateString('pt-BR')}</p>
                           </div>
-                          <Button size="sm" variant={d.pago ? "outline" : "default"} onClick={() => toggleExpensePaid(d.id, d.pago)}>
-                            {d.pago ? 'Desmarcar' : 'Pagar'}
-                          </Button>
+                          {!d.pago && (
+                            <Button size="sm" variant={"default"} onClick={() => toggleExpensePaid(d.id, false)}>
+                              Pagar
+                            </Button>
+                          )}
                         </div>
                       </div>
                     )

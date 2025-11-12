@@ -99,8 +99,10 @@ body {
 }
 
 .has-due {
-    background-color: #ffeeba; /* Amarelo claro para contas */
-    font-weight: 600;
+    background-color: hsl(var(--accent) / 0.3) !important;
+    border-radius: 9999px;
+    font-weight: bold;
+    color: hsl(var(--accent-foreground)) !important;
 }
 
 .rdp-day_today:not(.rdp-day_outside) {
@@ -109,12 +111,12 @@ body {
 }
 
 .rdp-day_today.has-due {
-    background-color: #ffc107 !important;
-    color: #333 !important;
+    background-color: hsl(var(--accent)) !important;
+    color: hsl(var(--accent-foreground)) !important;
 }
 
 .rdp-day_selected, .rdp-day_selected:focus-visible, .rdp-day_selected:hover {
-  background-color: #ffc107 !important;
-  color: #333 !important;
+  background-color: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
   font-weight: bold;
 }
