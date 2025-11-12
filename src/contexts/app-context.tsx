@@ -125,6 +125,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
         });
         if(editedDespesa) toast({ title: "Sucesso", description: "Despesa atualizada!" });
         
+        // Handle toast for toggling expense paid
+        const toggledDespesa = state.despesas.find(d => {
+          const prevD = prevState.despesas.find(pd => pd.id === d.id);
+          return prevD && prevD.pago !== d.pago;
+        });
+        if (toggledDespesa) {
+          const message = toggledDespesa.pago ? "Conta marcada como paga!" : "Pagamento desmarcado.";
+          toast({ title: "Sucesso", description: message });
+        }
+
         prevStateRef.current = state;
       } catch (error) {
         console.error("Falha ao salvar dados no LocalStorage", error);
@@ -183,18 +193,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const toggleExpensePaid = useCallback((id: string) => {
     setState(prev => {
-        let isPaid;
         const newDespesas = prev.despesas.map(d => {
             if (d.id === id) {
-                isPaid = !d.pago;
-                return { ...d, pago: isPaid };
+                return { ...d, pago: !d.pago };
             }
             return d;
         });
-        toast({ title: "Sucesso", description: isPaid ? "Conta marcada como paga!" : "Pagamento desmarcado." });
         return { ...prev, despesas: newDespesas };
     });
-}, [toast]);
+  }, []);
 
   const addGoal = useCallback((goalData: Omit<Goal, 'id' | 'saved' | 'monthlyCommitment' | 'monthsInPlan'> & { duration: number, unit: 'days' | 'weeks' | 'months' | 'years'}) => {
     const { duration, unit, ...rest } = goalData;
