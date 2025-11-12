@@ -9,7 +9,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useAppContext } from '@/contexts/app-context';
 import { Ganho, Despesa } from '@/lib/types';
 import { formatCurrency, isSameMonth } from '@/lib/utils';
-import { Pencil, PlusCircle, Trash2, TrendingDown, TrendingUp, X, Wallet, Bell } from 'lucide-react';
+import { Pencil, PlusCircle, Trash2, TrendingDown, TrendingUp, X, Bell } from 'lucide-react';
 import { format } from 'date-fns';
 
 type FormState<T> = Partial<T> | null;
@@ -96,7 +96,7 @@ export default function ContasPage() {
   return (
     <div className="p-4">
       <h2 className="text-xl font-bold text-primary mb-4 flex items-center gap-2">
-        <Wallet className="h-6 w-6" />
+        <TrendingUp className="h-6 w-6" />
         Gerenciar Contas
       </h2>
       <div className="grid md:grid-cols-2 gap-6">
@@ -178,7 +178,7 @@ export default function ContasPage() {
               </div>
               <div>
                 <Label htmlFor="despesa-venc">Vencimento</Label>
-                <Input id="despesa-venc" name="vencimento" type="date" required defaultValue={despesaForm?.vencimento || format(new Date(), 'yyyy-MM-dd')} />
+                <Input id="despesa-venc" name="vencimento" type="date" required defaultValue={despesaForm?.vencimento ? format(new Date(despesaForm.vencimento.replace(/-/g, '/')), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')} />
               </div>
               
               <div className="space-y-2">
