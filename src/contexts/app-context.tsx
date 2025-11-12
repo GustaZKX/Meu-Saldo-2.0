@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import type { Ganho, Despesa, Goal, User, ColorCache } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getConsistentColor, hexToHsl } from '@/lib/colors';
+import { addMonths, format } from 'date-fns';
 
 const LOCAL_STORAGE_KEY = 'meuSaldoData';
 const LOCAL_COLOR_KEY = 'meuSaldoColors';
@@ -112,10 +113,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [toast]);
 
   const addDespesa = useCallback((despesa: Omit<Despesa, 'id' | 'isRevenue'>) => {
-    const newDespesa: Despesa = { ...despesa, id: Date.now().toString(), isRevenue: false };
-    setState(prev => ({ ...prev, despesas: [...prev.despesas, newDespesa].sort((a,b) => new Date(a.vencimento).getTime() - new Date(b.vencimento).getTime()) }));
-    toast({ title: "Sucesso", description: "Despesa adicionada!" });
+    let newDespesas: Despesa[] = [];
+    const baseId = Date.now();
+
+    if (despesa.recorrencia === 'mensal') {
+      for (let i = 0; i < 12; i++) { // Adiciona para os próximos 12 meses
+        const vencimentoDate = new Date(despesa.vencimento + 'T12:00:00');
+        const newVencimento = addMonths(vencimentoDate, i);
+        newDespesas.push({
+          ...despesa,
+          id: `${baseId}-${i}`,
+          isRevenue: false,
+          vencimento: format(newVencimento, 'yyyy-MM-dd'),
+          pago: false,
+        });
+      }
+    } else {
+      newDespesas.push({ ...despesa, id: baseId.toString(), isRevenue: false });
+    }
+    
+    setState(prev => ({
+      ...prev,
+      despesas: [...prev.despesas, ...newDespesas].sort((a,b) => new Date(a.vencimento).getTime() - new Date(b.vencimento).getTime())
+    }));
+
+    const message = despesa.recorrencia === 'mensal' ? 'Despesa mensal adicionada para o próximo ano.' : 'Despesa adicionada!';
+    toast({ title: "Sucesso", description: message });
   }, [toast]);
+
 
   const editDespesa = useCallback((despesa: Omit<Despesa, 'isRevenue'>) => {
     setState(prev => ({ ...prev, despesas: prev.despesas.map(d => d.id === despesa.id ? { ...despesa, isRevenue: false } : d).sort((a,b) => new Date(a.vencimento).getTime() - new Date(b.vencimento).getTime()) }));

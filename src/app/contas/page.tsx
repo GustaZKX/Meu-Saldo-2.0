@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useAppContext } from '@/contexts/app-context';
 import { Ganho, Despesa } from '@/lib/types';
 import { formatCurrency, isSameMonth } from '@/lib/utils';
@@ -66,12 +67,12 @@ export default function ContasPage() {
       }
     });
 
-    const newDespesa = {
-      id: despesaForm?.id || Date.now().toString(),
+    const newDespesa: Omit<Despesa, 'id' | 'isRevenue'> = {
       nome: data.get('nome') as string,
       categoria: data.get('categoria') as string,
       valor: parseFloat(data.get('valor') as string),
       vencimento: data.get('vencimento') as string,
+      recorrencia: data.get('recorrencia') as 'mensal' | 'unico',
       pago: data.get('pago') === 'on',
       alarmSettings,
     };
@@ -81,7 +82,7 @@ export default function ContasPage() {
     }
 
     if (despesaForm?.id) {
-      editDespesa(newDespesa as Despesa);
+      editDespesa({ ...newDespesa, id: despesaForm.id } as Despesa);
     } else {
       addDespesa(newDespesa);
     }
@@ -180,6 +181,20 @@ export default function ContasPage() {
                 <Input id="despesa-venc" name="vencimento" type="date" required defaultValue={despesaForm?.vencimento || format(new Date(), 'yyyy-MM-dd')} />
               </div>
               
+              <div className="space-y-2">
+                <Label>Esta despesa é:</Label>
+                <RadioGroup name="recorrencia" defaultValue={despesaForm?.recorrencia || 'unico'} className="flex gap-4">
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="unico" id="r-unico" />
+                    <Label htmlFor="r-unico" className="font-normal">Apenas este mês</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="mensal" id="r-mensal" />
+                    <Label htmlFor="r-mensal" className="font-normal">Mensal</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
               <div className="space-y-2">
                 <Label className="flex items-center gap-2"><Bell className="h-4 w-4" /> Avisar sobre o vencimento</Label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
