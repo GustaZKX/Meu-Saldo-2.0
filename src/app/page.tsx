@@ -10,8 +10,11 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { useAppContext } from '@/contexts/app-context';
 import { formatCurrency, isSameDay, isSameMonth } from '@/lib/utils';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Wallet } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Wallet, BellRing } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { differenceInDays, startOfDay } from 'date-fns';
+import { Despesa } from '@/lib/types';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function Home() {
   const { state, toggleExpensePaid } = useAppContext();
@@ -41,6 +44,23 @@ export default function Home() {
     .filter(d => !d.pago)
     .map(d => new Date(d.vencimento));
 
+  // Alarms
+  const today = startOfDay(new Date());
+  const dueAlarms: (Despesa & { daysUntilDue: number })[] = state.despesas
+    .filter(d => {
+      if (d.pago || !d.alarmSettings || d.alarmSettings.length === 0) return false;
+      const dueDate = startOfDay(new Date(d.vencimento));
+      const daysUntilDue = differenceInDays(dueDate, today);
+      if (daysUntilDue < 0) return false; // Ignore overdue
+      return d.alarmSettings.includes(daysUntilDue);
+    })
+    .map(d => ({
+      ...d,
+      daysUntilDue: differenceInDays(startOfDay(new Date(d.vencimento)), today)
+    }))
+    .sort((a, b) => a.daysUntilDue - b.daysUntilDue);
+
+
   const vencimentosDoDia = selectedDate ? state.despesas.filter(d => isSameDay(new Date(d.vencimento), selectedDate)) : [];
   const vencimentosDoMes = state.despesas.filter(d => isSameMonth(new Date(d.vencimento), currentMonth) && !d.pago).sort((a,b) => new Date(a.vencimento).getTime() - new Date(b.vencimento).getTime());
 
@@ -49,6 +69,28 @@ export default function Home() {
   return (
     <div className="p-4 space-y-6">
       <h2 className="text-xl font-bold text-primary">Finanças do Mês</h2>
+
+      {dueAlarms.length > 0 && (
+        <Card className="border-amber-500">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg text-amber-700">
+              <BellRing className="h-5 w-5 animate-pulse" /> Alertas de Vencimento
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {dueAlarms.map(d => (
+              <Alert key={`alarm-${d.id}`} variant="default" className="bg-amber-50 border-amber-200">
+                <BellRing className="h-4 w-4 text-amber-600"/>
+                <AlertTitle className="text-amber-800">{d.nome} - {formatCurrency(d.valor)}</AlertTitle>
+                <AlertDescription className="text-amber-700">
+                  Vence {d.daysUntilDue === 0 ? 'hoje' : `em ${d.daysUntilDue} dia(s)`}!
+                </AlertDescription>
+              </Alert>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 gap-6">
         <Card>
           <CardHeader>

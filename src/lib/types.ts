@@ -15,6 +15,7 @@ export interface Despesa extends Transaction {
   vencimento: string;
   pago: boolean;
   isRevenue: false;
+  alarmSettings?: number[];
 }
 
 export interface Goal {

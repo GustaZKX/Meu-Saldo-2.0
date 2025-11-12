@@ -8,15 +8,22 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useAppContext } from '@/contexts/app-context';
 import { Ganho, Despesa } from '@/lib/types';
 import { formatCurrency, isSameMonth } from '@/lib/utils';
-import { Pencil, PlusCircle, Trash2, TrendingDown, TrendingUp, X, Wallet } from 'lucide-react';
+import { Pencil, PlusCircle, Trash2, TrendingDown, TrendingUp, X, Wallet, Bell } from 'lucide-react';
 import { format } from 'date-fns';
 
 type FormState<T> = Partial<T> | null;
 
+const alarmOptions = [
+  { days: 7, label: '7 dias antes' },
+  { days: 5, label: '5 dias antes' },
+  { days: 3, label: '3 dias antes' },
+  { days: 1, label: '1 dia antes' },
+  { days: 0, label: 'No dia' },
+];
+
 export default function ContasPage() {
   const { state, addGanho, editGanho, deleteGanho, addDespesa, editDespesa, deleteDespesa } = useAppContext();
   
-  // State for forms
   const [ganhoForm, setGanhoForm] = useState<FormState<Ganho>>(null);
   const [despesaForm, setDespesaForm] = useState<FormState<Despesa>>(null);
   const [currentMonth] = useState(new Date());
@@ -35,7 +42,6 @@ export default function ContasPage() {
     };
 
     if (!newGanho.nome || !newGanho.categoria || isNaN(newGanho.valor) || newGanho.valor <= 0) {
-      // Basic validation
       return;
     }
 
@@ -53,6 +59,13 @@ export default function ContasPage() {
     const form = e.target as HTMLFormElement;
     const data = new FormData(form);
     
+    const alarmSettings: number[] = [];
+    alarmOptions.forEach(opt => {
+      if (data.get(`alarm-${opt.days}`) === 'on') {
+        alarmSettings.push(opt.days);
+      }
+    });
+
     const newDespesa = {
       id: despesaForm?.id || Date.now().toString(),
       nome: data.get('nome') as string,
@@ -60,6 +73,7 @@ export default function ContasPage() {
       valor: parseFloat(data.get('valor') as string),
       vencimento: data.get('vencimento') as string,
       pago: data.get('pago') === 'on',
+      alarmSettings,
     };
 
     if (!newDespesa.nome || !newDespesa.categoria || isNaN(newDespesa.valor) || newDespesa.valor <= 0 || !newDespesa.vencimento) {
@@ -165,10 +179,28 @@ export default function ContasPage() {
                 <Label htmlFor="despesa-venc">Vencimento</Label>
                 <Input id="despesa-venc" name="vencimento" type="date" required defaultValue={despesaForm?.vencimento || format(new Date(), 'yyyy-MM-dd')} />
               </div>
+              
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2"><Bell className="h-4 w-4" /> Avisar sobre o vencimento</Label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
+                  {alarmOptions.map(opt => (
+                    <div key={opt.days} className="flex items-center gap-2">
+                      <Checkbox 
+                        id={`alarm-${opt.days}`} 
+                        name={`alarm-${opt.days}`} 
+                        defaultChecked={despesaForm?.alarmSettings?.includes(opt.days)}
+                      />
+                      <Label htmlFor={`alarm-${opt.days}`} className="font-normal">{opt.label}</Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div className="flex items-center space-x-2">
                 <Checkbox id="despesa-pago" name="pago" defaultChecked={despesaForm?.pago} />
-                <Label htmlFor="despesa-pago">Marcar como pago</Label>
+                <Label htmlFor="despesa-pago" className="font-normal">Marcar como pago</Label>
               </div>
+
               <div className="flex gap-2">
                 {despesaForm && <Button type="button" variant="outline" onClick={() => setDespesaForm(null)}><X className="mr-2 h-4 w-4"/> Cancelar</Button>}
                 <Button type="submit" className="w-full bg-destructive hover:bg-destructive/90">
