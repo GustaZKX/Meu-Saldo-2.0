@@ -78,7 +78,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       toast({ title: "Erro", description: "Não foi possível carregar seus dados.", variant: 'destructive' });
     }
     setIsLoaded(true);
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
     if (isLoaded) {
@@ -92,40 +92,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(dataToStore));
         localStorage.setItem(LOCAL_COLOR_KEY, JSON.stringify(state.colorCache));
         
-        // Compare previous and current state to show toasts
+        // --- TOAST NOTIFICATIONS ---
         const prevState = prevStateRef.current;
+
+        // Ganhos
         if (prevState.ganhos.length < state.ganhos.length) toast({ title: "Sucesso", description: "Ganho adicionado!" });
         if (prevState.ganhos.length > state.ganhos.length) toast({ title: "Sucesso", description: "Ganho excluído." });
-        
+        const editedGanho = state.ganhos.find(g => {
+          const prevG = prevState.ganhos.find(pg => pg.id === g.id);
+          return prevG && JSON.stringify(prevG) !== JSON.stringify(g);
+        });
+        if (editedGanho) toast({ title: "Sucesso", description: "Ganho atualizado!" });
+
+        // Despesas
         if (prevState.despesas.length < state.despesas.length) {
             const addedExpense = state.despesas.find(d => !prevState.despesas.some(pd => pd.id === d.id));
             const message = addedExpense?.recorrencia === 'mensal' ? 'Despesa mensal adicionada para o próximo ano.' : 'Despesa adicionada!';
             toast({ title: "Sucesso", description: message });
         }
         if (prevState.despesas.length > state.despesas.length) toast({ title: "Sucesso", description: "Despesa excluída." });
-
-        if (prevState.goals.length < state.goals.length) {
-            const newGoal = state.goals[state.goals.length - 1];
-            toast({ title: "Sucesso", description: `Meta "${newGoal.name}" criada!` });
-        }
-        if (prevState.goals.length > state.goals.length) toast({ title: "Sucesso", description: "Meta excluída." });
-
-        if (prevState.user.username !== state.user.username) toast({ title: "Sucesso", description: "Nome de usuário atualizado!" });
-        if (JSON.stringify(prevState.colorCache) !== JSON.stringify(state.colorCache)) toast({ title: 'Sucesso', description: 'Cores personalizadas salvas!' });
-
-        const editedGanho = state.ganhos.find(g => {
-            const prevG = prevState.ganhos.find(pg => pg.id === g.id);
-            return prevG && JSON.stringify(prevG) !== JSON.stringify(g);
-        });
-        if(editedGanho) toast({ title: "Sucesso", description: "Ganho atualizado!" });
-
         const editedDespesa = state.despesas.find(d => {
             const prevD = prevState.despesas.find(pd => pd.id === d.id);
-            return prevD && JSON.stringify(prevD) !== JSON.stringify(d) && prevD.pago === d.pago;
+            return prevD && JSON.stringify(prevD) !== JSON.stringify(d) && prevD.pago === d.pago; // Ignore pago toggle
         });
-        if(editedDespesa) toast({ title: "Sucesso", description: "Despesa atualizada!" });
-        
-        // Handle toast for toggling expense paid
+        if (editedDespesa) toast({ title: "Sucesso", description: "Despesa atualizada!" });
         const toggledDespesa = state.despesas.find(d => {
           const prevD = prevState.despesas.find(pd => pd.id === d.id);
           return prevD && prevD.pago !== d.pago;
@@ -135,7 +125,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
           toast({ title: "Sucesso", description: message });
         }
 
-        prevStateRef.current = state;
+        // Metas
+        if (prevState.goals.length < state.goals.length) {
+            const newGoal = state.goals[state.goals.length - 1];
+            toast({ title: "Sucesso", description: `Meta "${newGoal.name}" criada!` });
+        }
+        if (prevState.goals.length > state.goals.length) toast({ title: "Sucesso", description: "Meta excluída." });
+        
+        state.goals.forEach(currentGoal => {
+          const prevGoal = prevState.goals.find(g => g.id === currentGoal.id);
+          if (prevGoal && prevGoal.saved < currentGoal.saved) {
+             toast({ title: "Sucesso", description: `Valor adicionado à meta "${currentGoal.name}"` });
+             if (currentGoal.saved >= currentGoal.targetValue) {
+               toast({ title: "Parabéns!", description: `Meta "${currentGoal.name}" atingida!` });
+             }
+          }
+        });
+
+
+        // Outros
+        if (prevState.user.username !== state.user.username) toast({ title: "Sucesso", description: "Nome de usuário atualizado!" });
+        if (JSON.stringify(prevState.colorCache) !== JSON.stringify(state.colorCache)) toast({ title: 'Sucesso', description: 'Cores personalizadas salvas!' });
+
+        prevStateRef.current = state; // Update ref after all checks
       } catch (error) {
         console.error("Falha ao salvar dados no LocalStorage", error);
         toast({ title: "Erro", description: "Não foi possível salvar seus dados.", variant: 'destructive' });
@@ -192,15 +204,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const toggleExpensePaid = useCallback((id: string) => {
-    setState(prev => {
-        const newDespesas = prev.despesas.map(d => {
-            if (d.id === id) {
-                return { ...d, pago: !d.pago };
-            }
-            return d;
-        });
-        return { ...prev, despesas: newDespesas };
-    });
+    setState(prev => ({
+      ...prev,
+      despesas: prev.despesas.map(d => 
+        d.id === id ? { ...d, pago: !d.pago } : d
+      ),
+    }));
   }, []);
 
   const addGoal = useCallback((goalData: Omit<Goal, 'id' | 'saved' | 'monthlyCommitment' | 'monthsInPlan'> & { duration: number, unit: 'days' | 'weeks' | 'months' | 'years'}) => {
@@ -225,24 +234,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const contributeToGoal = useCallback((goalId: string, value: number) => {
-    setState(prev => {
-      let goalName = '';
-      const newGoals = prev.goals.map(g => {
+    setState(prev => ({
+      ...prev,
+      goals: prev.goals.map(g => {
         if (g.id === goalId) {
-          goalName = g.name;
-          const newSavedValue = g.saved + value;
-          if(newSavedValue >= g.targetValue) {
-            toast({ title: "Parabéns!", description: `Meta "${g.name}" atingida!` });
-            return { ...g, saved: g.targetValue };
-          }
+          const newSavedValue = Math.min(g.targetValue, g.saved + value);
           return { ...g, saved: newSavedValue };
         }
         return g;
-      });
-      if(goalName) toast({ title: "Sucesso", description: `Valor adicionado à meta "${goalName}"` });
-      return { ...prev, goals: newGoals };
-    });
-  }, [toast]);
+      })
+    }));
+  }, []);
 
   const deleteGoal = useCallback((id: string) => {
     setState(prev => ({ ...prev, goals: prev.goals.filter(g => g.id !== id) }));
@@ -256,9 +258,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(LOCAL_STORAGE_KEY);
     localStorage.removeItem(LOCAL_COLOR_KEY);
     setState(initialState);
-    toast({ title: "Aplicativo Resetado", description: "Todos os dados foram apagados." });
+    // No toast here to avoid re-entry issues on reload
     window.location.reload();
-  }, [toast]);
+  }, []);
 
   const saveCustomColors = useCallback((colors: {category: string, color: string}[]) => {
       setState(prev => {
