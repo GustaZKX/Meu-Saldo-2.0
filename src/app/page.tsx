@@ -13,6 +13,7 @@ import { formatCurrency, isSameDay, isSameMonth } from '@/lib/utils';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Wallet, BellRing } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { differenceInDays, startOfDay } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { Despesa } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
@@ -100,6 +101,7 @@ export default function Home() {
           </CardHeader>
           <CardContent>
             <Calendar
+              locale={ptBR}
               mode="single"
               selected={selectedDate}
               onSelect={setSelectedDate}
