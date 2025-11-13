@@ -52,7 +52,7 @@ User's Financial Data:
 - Discretionary Expenses: {{{discretionaryExpenses}}}
 - Savings Goal: {{{savingsGoal}}}
 
-Based on this information, calculate and suggest a daily and a weekly spending limit. Provide personalized advice on how the user can better manage their finances to meet their savings goals. The advice should be encouraging and practical. Your output must be in Portuguese.`,
+Based on this information, calculate and suggest a daily and a weekly spending limit. Provide personalized advice on how the user can better manage their finances to meet their savings goals. The advice should be encouraging, practical, and broken into very short, easy-to-read sentences. Your output must be in Portuguese.`,
 });
 
 const analyzeSpendingPatternsFlow = ai.defineFlow(
