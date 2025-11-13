@@ -30,12 +30,12 @@ export default function MetasPage() {
 
   const goalForm = useForm<z.infer<typeof goalSchema>>({
     resolver: zodResolver(goalSchema),
-    defaultValues: { name: '', targetValue: undefined, duration: undefined, unit: 'months' },
+    defaultValues: { name: '', targetValue: '' as any, duration: '' as any, unit: 'months' },
   });
 
   const contributionForm = useForm<z.infer<typeof contributionSchema>>({
     resolver: zodResolver(contributionSchema),
-    defaultValues: { goalId: '', value: undefined },
+    defaultValues: { goalId: '', value: '' as any },
   });
 
   const onGoalSubmit = (values: z.infer<typeof goalSchema>) => {
@@ -45,7 +45,7 @@ export default function MetasPage() {
 
   const onContributionSubmit = (values: z.infer<typeof contributionSchema>) => {
     contributeToGoal(values.goalId, values.value);
-    contributionForm.reset();
+    contributionForm.reset({ goalId: '', value: '' as any });
   };
   
   return (
