@@ -131,7 +131,7 @@ export default function RelatoriosPage() {
                 </CardTitle>
                 <ChartContainer config={chartConfig} className="mx-auto aspect-square h-[250px]">
                   <PieChart>
-                    <ChartTooltip content={<ChartTooltipContent nameKey="name" hideLabel formatter={(value) => formatCurrency(Number(value))} />} />
+                    <ChartTooltip content={<ChartTooltipContent nameKey="name" formatter={(value, name) => `${name}: ${formatCurrency(Number(value))}`} />} />
                     <Pie data={expenseData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={80}>
                       {expenseData.map((entry) => ( <Cell key={`cell-${entry.name}`} fill={entry.fill} /> ))}
                     </Pie>
@@ -148,7 +148,7 @@ export default function RelatoriosPage() {
                 </CardTitle>
                 <ChartContainer config={chartConfig} className="mx-auto aspect-square h-[250px]">
                   <PieChart>
-                    <ChartTooltip content={<ChartTooltipContent nameKey="name" hideLabel formatter={(value) => formatCurrency(Number(value))} />} />
+                    <ChartTooltip content={<ChartTooltipContent nameKey="name" formatter={(value, name) => `${name}: ${formatCurrency(Number(value))}`} />} />
                     <Pie data={revenueData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={80}>
                       {revenueData.map((entry) => ( <Cell key={`cell-${entry.name}`} fill={entry.fill} /> ))}
                     </Pie>
