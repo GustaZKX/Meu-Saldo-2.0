@@ -8,6 +8,7 @@ import { Bot, Info, Loader2, Sparkles, Target } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency } from '@/lib/utils';
 import type { AnalyzeSpendingPatternsOutput } from '@/ai/flows/analyze-spending-patterns';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 
 export default function ContadoraPage() {
   const { state } = useAppContext();
@@ -45,8 +46,8 @@ export default function ContadoraPage() {
         } else {
           setError(result.error || 'Ocorreu um erro desconhecido.');
         }
-      } catch (e) {
-        setError('Falha ao comunicar com o serviço de IA.');
+      } catch (e: any) {
+        setError(e.message || 'Falha ao comunicar com o serviço de IA.');
         console.error(e);
       } finally {
         setIsLoading(false);
@@ -91,18 +92,32 @@ export default function ContadoraPage() {
       );
     }
     
+    const adviceSentences = analysis.spendingAdvice.split('. ').filter(s => s.length > 0);
+
     return (
       <div className="space-y-4">
         <Card className="bg-blue-50 border-blue-200">
-            <CardHeader className='pb-2'>
-              <CardTitle className="text-base text-blue-800 flex items-center gap-2">
-                <Sparkles className="h-4 w-4" /> Conselho da IA
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>{analysis.spendingAdvice}</p>
-            </CardContent>
-          </Card>
+          <CardHeader className='pb-2'>
+            <CardTitle className="text-base text-blue-800 flex items-center gap-2">
+              <Sparkles className="h-4 w-4" /> Conselho da IA
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Carousel className="w-full max-w-xs mx-auto">
+              <CarouselContent>
+                {adviceSentences.map((sentence, index) => (
+                  <CarouselItem key={index}>
+                    <div className="p-1">
+                      <p className="text-center p-4 h-32 flex items-center justify-center">{sentence}.</p>
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious />
+              <CarouselNext />
+            </Carousel>
+          </CardContent>
+        </Card>
 
         <div className="grid grid-cols-2 gap-4">
           <Card>
