@@ -96,25 +96,27 @@ export default function ContadoraPage() {
 
     return (
       <div className="space-y-4">
-        <Card className="bg-blue-50 border-blue-200">
-          <CardHeader className='pb-2'>
-            <CardTitle className="text-base text-blue-800 flex items-center gap-2">
+        <Card className="bg-primary/10 border-primary/20">
+          <CardHeader className='pb-4'>
+            <CardTitle className="text-base text-primary flex items-center gap-2">
               <Sparkles className="h-4 w-4" /> Conselho da IA
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Carousel className="w-full max-w-xs mx-auto">
+            <Carousel className="w-full max-w-lg mx-auto" opts={{ loop: true }}>
               <CarouselContent>
                 {adviceSentences.map((sentence, index) => (
                   <CarouselItem key={index}>
                     <div className="p-1">
-                      <p className="text-center p-4 h-32 flex items-center justify-center">{sentence}.</p>
+                      <p className="text-center text-sm md:text-base p-4 h-32 flex items-center justify-center text-primary/80">
+                        "{sentence}."
+                      </p>
                     </div>
                   </CarouselItem>
                 ))}
               </CarouselContent>
-              <CarouselPrevious />
-              <CarouselNext />
+              <CarouselPrevious className="ml-2" />
+              <CarouselNext className="mr-2"/>
             </Carousel>
           </CardContent>
         </Card>
