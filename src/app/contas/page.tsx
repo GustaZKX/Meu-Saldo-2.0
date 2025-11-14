@@ -11,6 +11,7 @@ import { Ganho, Despesa } from '@/lib/types';
 import { formatCurrency, isSameMonth } from '@/lib/utils';
 import { Pencil, PlusCircle, Trash2, TrendingDown, TrendingUp, X, Bell } from 'lucide-react';
 import { format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 type FormState<T> = Partial<T> | null;
 
@@ -23,7 +24,8 @@ const alarmOptions = [
 ];
 
 export default function ContasPage() {
-  const { state, addGanho, editGanho, deleteGanho, addDespesa, editDespesa, deleteDespesa } = useAppContext();
+  const { state, addGanho, editGanho, deleteGanho, addDespesa, editDespesa, deleteDespesa, requestNotificationPermission } = useAppContext();
+  const { toast } = useToast();
   
   const [ganhoForm, setGanhoForm] = useState<FormState<Ganho>>(null);
   const [despesaForm, setDespesaForm] = useState<FormState<Despesa>>(null);
@@ -55,7 +57,7 @@ export default function ContasPage() {
     form.reset();
   };
 
-  const handleDespesaSubmit = (e: React.FormEvent) => {
+  const handleDespesaSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const form = e.target as HTMLFormElement;
     const data = new FormData(form);
@@ -66,6 +68,18 @@ export default function ContasPage() {
         alarmSettings.push(opt.days);
       }
     });
+
+    if (alarmSettings.length > 0 && state.notificationPermission === 'default') {
+      const permission = await requestNotificationPermission();
+      if (permission !== 'granted') {
+        toast({
+          variant: 'destructive',
+          title: 'Notificações Bloqueadas',
+          description: 'Para usar os lembretes, ative as notificações nas configurações do seu navegador.',
+        });
+        return;
+      }
+    }
 
     const newDespesa: Omit<Despesa, 'id' | 'isRevenue'> = {
       nome: data.get('nome') as string,

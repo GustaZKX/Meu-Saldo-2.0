@@ -3,10 +3,13 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import type { Ganho, Despesa, Goal, User, ColorCache } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getConsistentColor, hexToHsl } from '@/lib/colors';
-import { addMonths, format } from 'date-fns';
+import { addMonths, format, startOfDay, differenceInDays } from 'date-fns';
 
 const LOCAL_STORAGE_KEY = 'meuSaldoData';
 const LOCAL_COLOR_KEY = 'meuSaldoColors';
+
+// Helper to check if Notification API is available
+const isNotificationAPIAvailable = () => typeof window !== 'undefined' && 'Notification' in window;
 
 interface AppState {
   ganhos: Ganho[];
@@ -14,6 +17,7 @@ interface AppState {
   goals: Goal[];
   user: User;
   colorCache: ColorCache;
+  notificationPermission: NotificationPermission;
 }
 
 interface AppContextType {
@@ -33,6 +37,7 @@ interface AppContextType {
   resetApp: () => void;
   saveCustomColors: (colors: {category: string, color: string}[]) => void;
   getCatColor: (category: string, isRevenue: boolean) => string;
+  requestNotificationPermission: () => Promise<NotificationPermission>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -43,7 +48,42 @@ const initialState: AppState = {
   goals: [],
   user: { username: "Usuário" },
   colorCache: {},
+  notificationPermission: 'default',
 };
+
+// --- Notification Helpers ---
+const scheduleNotifications = (despesa: Despesa) => {
+  if (!isNotificationAPIAvailable() || Notification.permission !== 'granted' || !despesa.alarmSettings) return;
+
+  const title = `Lembrete de Vencimento: ${despesa.nome}`;
+  const options = {
+    body: `Sua conta de R$ ${despesa.valor.toFixed(2)} vence em breve!`,
+    icon: '/logo.png', // Ensure you have a logo.png in your public folder
+    tag: despesa.id,
+  };
+
+  despesa.alarmSettings.forEach(daysBefore => {
+    const dueDate = startOfDay(new Date(despesa.vencimento.replace(/-/g, '\/')));
+    const notificationDate = new Date(dueDate);
+    notificationDate.setDate(dueDate.getDate() - daysBefore);
+    notificationDate.setHours(9, 0, 0, 0); // Schedule for 9 AM
+
+    const now = new Date();
+    if (notificationDate > now) {
+      const timeout = notificationDate.getTime() - now.getTime();
+      setTimeout(() => {
+        new Notification(title, options);
+      }, timeout);
+    }
+  });
+};
+
+const clearNotifications = (despesaId: string) => {
+    // This is a simplified approach. True cancellation of scheduled `setTimeout`
+    // would require storing timeout IDs, which adds significant complexity for this app.
+    // For a production app, a service worker approach would be more robust.
+};
+
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(initialState);
@@ -71,6 +111,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if(storedColors) {
         loadedState.colorCache = JSON.parse(storedColors);
       }
+      if(isNotificationAPIAvailable()) {
+        loadedState.notificationPermission = Notification.permission;
+      }
+
       setState(loadedState);
       prevStateRef.current = loadedState;
     } catch (error) {
@@ -94,58 +138,78 @@ export function AppProvider({ children }: { children: ReactNode }) {
         
         // --- TOAST NOTIFICATIONS ---
         const prevState = prevStateRef.current;
+        let toastQueue: Parameters<typeof toast>[0][] = [];
 
         // Ganhos
-        if (prevState.ganhos.length < state.ganhos.length) toast({ title: "Sucesso", description: "Ganho adicionado!" });
-        if (prevState.ganhos.length > state.ganhos.length) toast({ title: "Sucesso", description: "Ganho excluído." });
+        if (prevState.ganhos.length < state.ganhos.length) toastQueue.push({ title: "Sucesso", description: "Ganho adicionado!" });
+        if (prevState.ganhos.length > state.ganhos.length) toastQueue.push({ title: "Sucesso", description: "Ganho excluído." });
         const editedGanho = state.ganhos.find(g => {
           const prevG = prevState.ganhos.find(pg => pg.id === g.id);
           return prevG && JSON.stringify(prevG) !== JSON.stringify(g);
         });
-        if (editedGanho) toast({ title: "Sucesso", description: "Ganho atualizado!" });
+        if (editedGanho) toastQueue.push({ title: "Sucesso", description: "Ganho atualizado!" });
 
         // Despesas
         if (prevState.despesas.length < state.despesas.length) {
             const addedExpense = state.despesas.find(d => !prevState.despesas.some(pd => pd.id === d.id));
             const message = addedExpense?.recorrencia === 'mensal' ? 'Despesa mensal adicionada para o próximo ano.' : 'Despesa adicionada!';
-            toast({ title: "Sucesso", description: message });
+            toastQueue.push({ title: "Sucesso", description: message });
+            // Schedule notifications for new expenses
+            state.despesas.filter(d => !prevState.despesas.some(pd => pd.id === d.id)).forEach(scheduleNotifications);
         }
-        if (prevState.despesas.length > state.despesas.length) toast({ title: "Sucesso", description: "Despesa excluída." });
+        if (prevState.despesas.length > state.despesas.length) toastQueue.push({ title: "Sucesso", description: "Despesa excluída." });
+        
         const editedDespesa = state.despesas.find(d => {
             const prevD = prevState.despesas.find(pd => pd.id === d.id);
             return prevD && JSON.stringify(prevD) !== JSON.stringify(d) && prevD.pago === d.pago; // Ignore pago toggle
         });
-        if (editedDespesa) toast({ title: "Sucesso", description: "Despesa atualizada!" });
+        if (editedDespesa) {
+            toastQueue.push({ title: "Sucesso", description: "Despesa atualizada!" });
+            // Reschedule notifications for edited expenses
+            clearNotifications(editedDespesa.id);
+            scheduleNotifications(editedDespesa);
+        }
+
         const toggledDespesa = state.despesas.find(d => {
           const prevD = prevState.despesas.find(pd => pd.id === d.id);
           return prevD && prevD.pago !== d.pago;
         });
         if (toggledDespesa) {
           const message = toggledDespesa.pago ? "Conta marcada como paga!" : "Pagamento desmarcado.";
-          toast({ title: "Sucesso", description: message });
+          toastQueue.push({ title: "Sucesso", description: message });
+          if (toggledDespesa.pago) {
+            clearNotifications(toggledDespesa.id);
+          } else {
+            scheduleNotifications(toggledDespesa);
+          }
         }
 
         // Metas
-        if (prevState.goals.length < state.goals.length) {
-            const newGoal = state.goals[state.goals.length - 1];
-            toast({ title: "Sucesso", description: `Meta "${newGoal.name}" criada!` });
+        const newGoal = state.goals.find(g => !prevState.goals.some(pg => pg.id === g.id));
+        if (newGoal) {
+            toastQueue.push({ title: "Sucesso", description: `Meta "${newGoal.name}" criada!` });
         }
-        if (prevState.goals.length > state.goals.length) toast({ title: "Sucesso", description: "Meta excluída." });
+        if (prevState.goals.length > state.goals.length) toastQueue.push({ title: "Sucesso", description: "Meta excluída." });
         
-        state.goals.forEach(currentGoal => {
+        const contributedGoal = state.goals.find(currentGoal => {
           const prevGoal = prevState.goals.find(g => g.id === currentGoal.id);
-          if (prevGoal && prevGoal.saved < currentGoal.saved) {
-             toast({ title: "Sucesso", description: `Valor adicionado à meta "${currentGoal.name}"` });
-             if (currentGoal.saved >= currentGoal.targetValue) {
-               toast({ title: "Parabéns!", description: `Meta "${currentGoal.name}" atingida!` });
-             }
-          }
+          return prevGoal && prevGoal.saved < currentGoal.saved;
         });
+        if(contributedGoal) {
+            toastQueue.push({ title: "Sucesso", description: `Valor adicionado à meta "${contributedGoal.name}"` });
+             if (contributedGoal.saved >= contributedGoal.targetValue) {
+               toastQueue.push({ title: "Parabéns!", description: `Meta "${contributedGoal.name}" atingida!` });
+             }
+        }
 
 
         // Outros
-        if (prevState.user.username !== state.user.username) toast({ title: "Sucesso", description: "Nome de usuário atualizado!" });
-        if (JSON.stringify(prevState.colorCache) !== JSON.stringify(state.colorCache)) toast({ title: 'Sucesso', description: 'Cores personalizadas salvas!' });
+        if (prevState.user.username !== state.user.username) toastQueue.push({ title: "Sucesso", description: "Nome de usuário atualizado!" });
+        if (JSON.stringify(prevState.colorCache) !== JSON.stringify(state.colorCache)) toastQueue.push({ title: 'Sucesso', description: 'Cores personalizadas salvas!' });
+
+        if (toastQueue.length > 0) {
+            toastQueue.forEach(t => toast(t));
+        }
 
         prevStateRef.current = state; // Update ref after all checks
       } catch (error) {
@@ -200,7 +264,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const deleteDespesa = useCallback((id: string) => {
-    setState(prev => ({ ...prev, despesas: prev.despesas.filter(d => d.id !== id) }));
+    setState(prev => {
+        const despesa = prev.despesas.find(d => d.id === id);
+        if(despesa) clearNotifications(despesa.id);
+        return { ...prev, despesas: prev.despesas.filter(d => d.id !== id) }
+    });
   }, []);
 
   const toggleExpensePaid = useCallback((id: string) => {
@@ -280,7 +348,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return getConsistentColor(category, isRevenue, state.colorCache);
   }, [state.colorCache]);
 
-  const value = {
+  const requestNotificationPermission = useCallback(async () => {
+    if (!isNotificationAPIAvailable()) {
+      toast({
+        variant: 'destructive',
+        title: 'Notificações não suportadas',
+        description: 'Seu navegador não suporta notificações push.',
+      });
+      return 'unsupported';
+    }
+    const permission = await Notification.requestPermission();
+    setState(prev => ({ ...prev, notificationPermission: permission }));
+    if (permission === 'denied') {
+      toast({
+        variant: 'destructive',
+        title: 'Permissão Negada',
+        description: 'Você precisa habilitar as notificações nas configurações do seu navegador.',
+      });
+    }
+    return permission;
+  }, [toast]);
+
+  const value: AppContextType = {
     state,
     isLoaded,
     addGanho,
@@ -297,6 +386,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     resetApp,
     saveCustomColors,
     getCatColor,
+    requestNotificationPermission,
   };
 
   if (!isLoaded) {

@@ -38,3 +38,9 @@ export interface ColorCache {
     custom: boolean;
   };
 }
+
+declare global {
+    interface Window {
+        Notification: typeof Notification;
+    }
+}
