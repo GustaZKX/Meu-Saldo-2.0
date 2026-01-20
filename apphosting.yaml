@@ -1,6 +1,0 @@
-runConfig:
-  environmentVariables:
-    - variable: GEMINI_API_KEY
-      secret: GEMINI_API_KEY
-    - variable: GOOGLE_API_KEY
-      secret: GEMINI_API_KEY
