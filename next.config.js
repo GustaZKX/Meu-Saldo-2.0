@@ -1,17 +1,12 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  output: "standalone",
-  
-  // Ignora erros de TypeScript durante o build (Modo Relaxado)
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  output: 'standalone',
   typescript: {
     ignoreBuildErrors: true,
   },
-  
-  // Ignora erros de ESLint durante o build (Modo Relaxado)
   eslint: {
     ignoreDuringBuilds: true,
   },
 };
 
-export default nextConfig;
+module.exports = nextConfig;
